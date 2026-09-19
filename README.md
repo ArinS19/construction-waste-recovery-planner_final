@@ -117,12 +117,21 @@ The system covers 11 major construction materials with structured production rul
 - Python 3.10+ installed
 - Node.js 18+ and npm installed
 
-### 1-Click Launch (Windows)
-Double-click the provided launcher in the project root:
+### 1-Click Launch
+
+**Windows** — double-click, or run from a terminal in the project root:
 ```cmd
 run_all.bat
 ```
-This automatically launches both the FastAPI backend (Port 8000) and the Vite React frontend (Port 5173).
+
+**Linux / macOS** — run from a terminal in the project root:
+```bash
+./run_all.sh
+```
+
+Either script launches both the FastAPI backend (port 8000) and the Vite
+React frontend (port 5173), auto-creating the Python virtual environment and
+installing `node_modules` on first run.
 
 ---
 
@@ -132,8 +141,9 @@ This automatically launches both the FastAPI backend (Port 8000) and the Vite Re
 ```bash
 cd backend
 
-# (Optional) Create virtual environment
+# Create virtual environment
 python -m venv venv
+
 # Windows:
 venv\Scripts\activate
 # Linux/macOS:
@@ -142,11 +152,10 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run automated rule test suite
-python -m pytest tests/test_rule_engine.py -v
+# Run automated test suite (rule engine + ML pipeline)
+python -m pytest tests/ -v
 
 # Start FastAPI server
-set PYTHONPATH=backend
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 * Backend API runs at: `http://127.0.0.1:8000`
@@ -203,22 +212,23 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 | Method | Endpoint | Description |
 |:---|:---|:---|
-| `POST` | `/api/analyze` | Evaluates waste inputs against the rule engine, persists result, and returns explainable response. |
+| `POST` | `/api/analyze` | Runs the ML decision engine (with safety-guardrail overrides) on waste inputs, persists the result, and returns an explainable response including confidence score and per-class probabilities. |
 | `GET` | `/api/assessments` | Returns all recorded assessments with optional `?material=`, `?pathway=`, `?search=` filters. |
 | `GET` | `/api/assessments/{id}` | Retrieves full decision path and checklist for a specific assessment. |
 | `DELETE` | `/api/assessments/{id}` | Deletes an assessment audit record from the database. |
-| `GET` | `/api/rules` | Catalogs all production rules in the rule base with optional filters. |
+| `GET` | `/api/ml/status` | Reports whether a trained model is loaded, its version/accuracy, and the required feature schema. |
+| `GET` | `/api/rules` | Catalogs all production rules in the (legacy, still-tested) rule base with optional filters. |
 | `GET` | `/api/rules/{rule_id}` | Returns predicate rules and rationale for a single rule ID (e.g. `C2`). |
 | `GET` | `/api/materials` | Lists knowledge base entries for all 11 construction waste materials. |
 | `GET` | `/api/statistics` | Aggregates real-time metrics (counts, pathway distribution, material streams). |
-| `GET` | `/api/health` | Service health status and confirmation of deterministic mode. |
+| `GET` | `/api/health` | Service health status. |
 
 ---
 
 ## 10. Database Schema (SQLite)
 
 Located at `backend/app/database/waste_planner.db`:
-- **`assessments`**: Stores evaluation runs (`id`, `timestamp`, `material`, `condition`, `contamination`, `quantity`, `unit`, `recommended_pathway`, `matched_rule`, `reason`, `applications`, `alternatives`, `decision_path`, `sustainability`).
+- **`assessments`**: Stores evaluation runs (`id`, `timestamp`, `material`, `condition`, `contamination`, `quantity`, `unit`, `recommended_pathway`, `matched_rule`, `reason`, `applications`, `alternatives`, `decision_path`, `sustainability`, plus ML fields `confidence_score`, `model_version`, `prediction_probabilities`, `decision_source`).
 - **`rules`**: Stores production rule catalog (`rule_id`, `material`, `pathway`, `priority`, `conditions_description`, `reason`, `applications`, `alternatives`).
 - **`materials`**: Stores knowledge base items (`name`, `category`, `description`, `typical_waste_source`, `reuse_potential`, `recycling_potential`, `common_applications`, `important_considerations`).
 

@@ -5,17 +5,18 @@
 
 ## 🟢 1. Current State of the System
 
-The project is **100% prepared for Machine Learning integration and fully runnable right now**:
+The project is **fully ML-driven and runnable right now on both Windows and Linux/macOS**:
 
 | Layer | Current Status | Description |
 |:---|:---:|:---|
 | **Backend API** | ✅ **Active** | FastAPI backend with endpoints `/api/analyze`, `/api/ml/status`, `/api/assessments`, `/api/materials`, `/api/rules`. |
-| **ML Model Slot** | 🟡 **Empty & Ready** | Modular slot located at `backend/app/ml/saved_models/waste_recovery_model.joblib`. |
-| **ML Fallback Engine** | ✅ **Active** | While your model is not yet placed, a built-in probabilistic baseline engine computes real multi-class probabilities ($0-100\%$) and calibrated confidence so the full stack never crashes. |
-| **Safety Guardrails** | ✅ **Active** | Automatic safety override routes hazardous / contaminated loads to specialized handling, ensuring regulatory civil engineering compliance. |
+| **ML Model** | ✅ **Trained & Loaded** | `backend/app/ml/saved_models/waste_recovery_model.joblib` is a trained RandomForest pipeline (see `model_metadata.json` for accuracy/version). `/api/analyze` calls it on every request. |
+| **ML Fallback Engine** | ✅ **Active (standby)** | If the model file is ever removed or fails to load, `BaselineProbabilisticModel` computes explainable multi-class probabilities so the stack never crashes. |
+| **Safety Guardrails** | ✅ **Active** | Automatic safety override routes hazardous / contaminated loads to specialized handling regardless of model output, ensuring regulatory civil engineering compliance. |
 | **Frontend UI** | ✅ **Updated** | React UI with ML Confidence Gauge, Multi-Class Probability Distribution progress bars across all 5 pathways, ML Status Widget, and 5-stage ML pipeline. |
-| **Reference Dataset** | ✅ **Generated** | 1,200 sample dataset ready at `backend/app/ml/data/sample_waste_dataset.csv`. |
+| **Reference Dataset** | ✅ **Generated** | 3,000-row stratified dataset (600/class) at `backend/app/ml/data/sample_waste_dataset.csv`. See [ML_Model_Guide.md](./ML_Model_Guide.md) for what it is and isn't. |
 | **Turnkey Training Script** | ✅ **Ready** | Automated Scikit-Learn training script at `backend/app/ml/train_template.py`. |
+| **Cross-Platform Launchers** | ✅ **Ready** | `run_all.bat` / `run_backend.bat` / `run_frontend.bat` for Windows, and `run_all.sh` / `run_backend.sh` / `run_frontend.sh` for Linux/macOS. Both auto-create the Python venv and install dependencies on first run. |
 
 ---
 
@@ -24,21 +25,26 @@ The project is **100% prepared for Machine Learning integration and fully runnab
 You can test the entire application in **3 quick steps**:
 
 ### Step 1: Start the Backend and Frontend
-Double-click:
-```bash
+
+**Windows** — double-click, or run from a terminal:
+```cmd
 run_all.bat
 ```
 *(Or open two separate terminal windows:)*
-- **Terminal 1 (Backend):**
-  ```bash
-  run_backend.bat
-  ```
-  *(Starts FastAPI on `http://127.0.0.1:8000`)*
-- **Terminal 2 (Frontend):**
-  ```bash
-  run_frontend.bat
-  ```
-  *(Starts Vite React on `http://localhost:5173`)*
+- **Terminal 1 (Backend):** `run_backend.bat` *(Starts FastAPI on `http://127.0.0.1:8000`)*
+- **Terminal 2 (Frontend):** `run_frontend.bat` *(Starts Vite React on `http://localhost:5173`)*
+
+**Linux / macOS** — from a terminal in the project root:
+```bash
+./run_all.sh
+```
+*(Or open two separate terminals:)*
+- **Terminal 1 (Backend):** `./run_backend.sh` *(Starts FastAPI on `http://127.0.0.1:8000`)*
+- **Terminal 2 (Frontend):** `./run_frontend.sh` *(Starts Vite React on `http://127.0.0.1:5173`)*
+
+All four scripts are idempotent: they create the Python virtual environment
+(`backend/venv`) and install `node_modules` on first run only, then reuse
+them on subsequent runs.
 
 ---
 
@@ -78,18 +84,26 @@ What you will see right now:
 
 ---
 
-### Step 4: (Bonus) Test Training the ML Model in One Command!
-Want to see the system switch to an actual trained model right now?
-Run this in your terminal:
+### Step 4: (Bonus) Retrain the ML Model in One Command
+A trained model already ships in this repo, but you can regenerate it at any
+time (e.g. after editing the dataset or `train_template.py`):
+
 ```bash
+# Linux/macOS
+source backend/venv/bin/activate
 python backend/app/ml/train_template.py
 ```
-*(Uses the sample dataset to train a Scikit-Learn Pipeline and saves `waste_recovery_model.joblib` into `backend/app/ml/saved_models/`)*
+```cmd
+:: Windows
+backend\venv\Scripts\activate.bat
+python backend\app\ml\train_template.py
+```
+*(Uses the sample dataset to train a Scikit-Learn Pipeline and overwrites `waste_recovery_model.joblib` in `backend/app/ml/saved_models/`)*
 
 Once complete:
-- Refresh `http://localhost:5173`.
-- The Dashboard card will instantly turn green and display:
-  **"Trained Model Active" (v1.0.0)**!
+- Restart the backend and refresh `http://localhost:5173`.
+- The Dashboard card will display the updated version/accuracy from the new
+  `model_metadata.json`.
 
 ---
 
@@ -105,5 +119,5 @@ When you are ready to train your custom ML model:
    - Save your pipeline to:
      `backend/app/ml/saved_models/waste_recovery_model.joblib`
 4. **Deploy & Validate**:
-   - Restart the backend (`run_backend.bat`).
+   - Restart the backend (`run_backend.bat` on Windows, `./run_backend.sh` on Linux/macOS).
    - The app will automatically load your model artifact. No backend or frontend code changes needed!

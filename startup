@@ -1,17 +1,109 @@
-& "C:\Users\sinha\AppData\Local\Programs\Python\Python313\python.exe" -m venv venv
-.\venv\Scripts\Activate.ps1
+WINDOWS SETUP GUIDE — Construction Waste Recovery Planner
+============================================================
 
+1. PREREQUISITES (install once)
+------------------------------------------------------------
+Python 3.10+  -> https://www.python.org/downloads/
+                 (check "Add python.exe to PATH" during install)
+Node.js 18+   -> https://nodejs.org/  (LTS installer)
 
-git clone https://github.com/ArinS19/construction-waste-recovery-planner.git
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m uvicorn app.main:app --reload
+Verify in Command Prompt:
+    python --version
+    node --version
+    npm --version
 
+2. TRANSFER THE PROJECT
+------------------------------------------------------------
+Copy the whole "construction-waste-recovery-planner" folder to this
+machine (USB / network share / zip), or clone it:
 
-cd "path\to\construction-waste-recovery-planner\frontend"
-npm install
-npm run dev
+    git clone https://github.com/ArinS19/construction-waste-recovery-planner.git
 
-http://localhost:5173
+You can safely EXCLUDE these when copying — they are OS-specific /
+regenerated automatically on first Windows run:
+
+    backend\venv\
+    backend\app\database\waste_planner.db
+    backend\**\__pycache__\
+    frontend\node_modules\
+    frontend\dist\
+
+DO keep backend\app\ml\saved_models\waste_recovery_model.joblib —
+that is the already-trained ML model. It is a plain scikit-learn
+pickle, not tied to Linux, and loads fine on Windows as long as
+requirements.txt is installed here too (the launcher does this
+automatically).
+
+3. RUN IT (recommended — one command)
+------------------------------------------------------------
+From the project root, double-click:
+
+    run_all.bat
+
+This opens two console windows (backend + frontend). On the FIRST
+run only, it will:
+  - create backend\venv and pip install requirements.txt
+  - run npm install for the frontend
+
+That first run takes a few minutes and needs internet access — don't
+close the console windows while it's working. Every run after that
+is fast since venv/ and node_modules/ already exist.
+
+If Windows Defender / firewall prompts about Python or Node, click
+Allow (it's just binding to localhost).
+
+3b. RUN IT MANUALLY (equivalent, two terminals)
+------------------------------------------------------------
+Terminal 1 (backend):
+    cd backend
+    python -m venv venv
+    venv\Scripts\activate.bat
+    pip install -r requirements.txt
+    python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+Terminal 2 (frontend):
+    cd frontend
+    npm install
+    npm run dev -- --host 127.0.0.1 --port 5173
+
+4. VERIFY IT WORKED
+------------------------------------------------------------
+Once both windows show "Application startup complete" / "ready":
+
+    App:           http://127.0.0.1:5173
+    API docs:      http://127.0.0.1:8000/docs
+    Model status:  http://127.0.0.1:8000/api/ml/status
+                   -> confirm "is_user_trained_model_loaded": true
+
+Run a test assessment (New Assessment -> Concrete, Damaged, None,
+500 kg) and confirm you get a pathway with a confidence score and
+probability bars.
+
+5. TROUBLESHOOTING
+------------------------------------------------------------
+- Bat window flashes and closes immediately:
+    Open Command Prompt, cd into the project folder, run
+    run_backend.bat directly (not by double-click) so the window
+    stays open and you can read the actual error.
+
+- "python" not recognized:
+    Python wasn't added to PATH — reinstall and check that box, or
+    use "py" instead of "python".
+
+- "npm" not recognized:
+    Same idea for Node.js — reinstall, check "Add to PATH".
+
+- Model shows "is_user_trained_model_loaded": false:
+    The .joblib file didn't make it over in the copy — recopy
+    backend\app\ml\saved_models\ from the source machine.
+
+6. STOPPING IT
+------------------------------------------------------------
+Close the two console windows, or press Ctrl+C in each and confirm
+the "Terminate batch job" prompt.
+
+------------------------------------------------------------
+Nothing OS-specific lives in the app code itself (backend or
+frontend) — only these launcher scripts differ between platforms.
+The Linux/macOS equivalents are run_all.sh / run_backend.sh /
+run_frontend.sh in the project root.
