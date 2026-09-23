@@ -1,247 +1,326 @@
 # Construction Waste Recovery Planner
-### *A Machine Learning Decision Support System for Sustainable Material Recovery and Circular Economy*
 
-[![Decision Engine](https://img.shields.io/badge/Decision%20Engine-Machine%20Learning%20Classifier-059669.svg)](#machine-learning-architecture)
-[![Safety Guardrails](https://img.shields.io/badge/Guardrails-Civil%20Engineering%20Safety-blue.svg)](#environmental-safety-guardrails)
-[![Stack](https://img.shields.io/badge/Backend-FastAPI%20%7C%20Scikit--Learn%20%7C%20SQLite-0284c7.svg)](#technology-stack)
-[![Frontend](https://img.shields.io/badge/Frontend-React%20%7C%20TypeScript%20%7C%20Tailwind-6366f1.svg)](#technology-stack)
+*A Machine Learning decision-support system for sustainable construction & demolition (C&D) waste recovery, built around the circular-economy hierarchy.*
+
+This is the single reference document for the project. It replaces every other Markdown file that used to be scattered across this repository — if you want to understand what this system is, why it's built the way it is, how to run it, or how to extend it, this file is the whole story, top to bottom. A second, much shorter file — [`ML_EXPLANATION.md`](./ML_EXPLANATION.md) — exists purely to explain the ML side in plain language (e.g. for a course instructor); this file is the full technical reference.
 
 ---
 
-## 1. Executive Summary & Project Concept
+## Table of Contents
 
-The **Construction Waste Recovery Planner** is a full-stack decision support application designed to optimize the recovery of construction and demolition (C&D) waste.
-
-The application utilizes a **modular Machine Learning (ML) decision architecture** paired with environmental and civil engineering safety guardrails. It vectorizes material characteristics (physical condition, contamination level, quantity, unit, and material-specific attributes) and predicts the optimal recovery pathway along the circular waste hierarchy:
-
-$$\text{REUSE} \longrightarrow \text{REPAIR} \longrightarrow \text{RECYCLE} \longrightarrow \text{RECOVER} \longrightarrow \text{DISPOSE}$$
-
-> [!TIP]
-> **Machine Learning Integration Notice:**
-> For full technical details on feature engineering, the modular empty model slot, and step-by-step instructions on training your own model, see [ML_MODEL_INTEGRATION_SPECIFICATION.md](./ML_MODEL_INTEGRATION_SPECIFICATION.md).
-
----
-
-## 2. Core Problem & Academic Research Contributions
-
-### Problem Statement
-Over 35% of all solid waste generated globally originates from construction and demolition operations. While much of this debris retains structural and material integrity, site managers lack accessible tools to answer:
-> *"What should be done with this specific batch of construction waste, and WHY?"*
-
-### Academic Research Contributions
-1. **Condition-Aware Circular Recovery Framework:** Integrates physical condition (cracks, deformation, rot) and contamination metrics into recovery decision rules.
-2. **Explainable Rule-Based Inference:** Delivers an explicit execution trace showing which candidate rules were evaluated, which conditions were satisfied, and why higher-tier recovery options were ruled out.
-3. **Circular Value Prioritization:** Enforces a top-down evaluation hierarchy that prioritizes direct component reuse and refurbishing over aggregate downcycling.
-4. **Transparent Full-Stack Demonstration Prototype:** A functional research tool with SQLite audit persistence, RESTful APIs, and an academic dashboard.
+1. [What This Project Does](#1-what-this-project-does)
+2. [The Circular Recovery Hierarchy](#2-the-circular-recovery-hierarchy)
+3. [System Architecture](#3-system-architecture)
+4. [Technology Stack](#4-technology-stack)
+5. [The Machine Learning Decision Engine](#5-the-machine-learning-decision-engine)
+6. [The Pathway Reference Knowledge Base](#6-the-pathway-reference-knowledge-base)
+7. [Project Structure](#7-project-structure)
+8. [REST API Reference](#8-rest-api-reference)
+9. [Database Schema](#9-database-schema)
+10. [Running the Project](#10-running-the-project)
+11. [Testing](#11-testing)
+12. [Training / Replacing the ML Model](#12-training--replacing-the-ml-model)
+13. [Known Limitations & Honest Caveats](#13-known-limitations--honest-caveats)
+14. [Future Scope](#14-future-scope)
 
 ---
 
-## 3. The Circular Recovery Hierarchy
+## 1. What This Project Does
 
-The engine prioritizes recovery pathways in strictly descending order of preserved circular value:
+Construction and demolition (C&D) activity accounts for a huge share of global solid waste. Much of that debris still has real structural or material value, but the people handling it on-site rarely have a fast, standardized way to decide: *"What should actually happen to this specific batch of waste, and why?"* In practice that usually means everything gets crushed into low-grade aggregate or sent to landfill, even when direct reuse or repair would have preserved far more value.
 
-| Priority | Pathway | Technical Definition & Objective |
+This application takes a description of a batch of waste — material type, physical condition, contamination level, quantity, and a few material-specific characteristics (cracks, rust, rot, moisture, coatings, etc.) — and returns:
+
+- A **recommended recovery pathway** (see hierarchy below), chosen by a trained Machine Learning classifier
+- A **confidence score** and the **full probability distribution** across all five pathways
+- A **traceable, step-by-step decision path** (preprocessing → safety screening → ML inference → hierarchy alignment → recommendation)
+- **Potential applications** and **alternative recovery options** for the recommended pathway
+- A **qualitative sustainability assessment** (landfill avoidance, material recovery, resource conservation, circularity potential)
+- A **safety flag** if the batch requires certified professional/regulatory assessment before any action is taken
+
+Every assessment is persisted to a local SQLite database, so there's a full audit history, searchable and filterable by material/pathway, with aggregate statistics on top.
+
+## 2. The Circular Recovery Hierarchy
+
+The model's five target classes map directly onto the circular-economy waste hierarchy, in strictly descending order of preserved value:
+
+| Tier | Pathway | What it means |
 |:---:|:---|:---|
-| **Tier 1** | **REUSE** | Direct salvage and re-installation of components in their original structural or architectural form without remelting or crushing. |
-| **Tier 2** | **REPAIR** | Minor refurbishment, re-edging, cleaning, or de-nailing to restore full functional utility. |
-| **Tier 3** | **RECYCLE** | Mechanical crushing, shredding, or melting into secondary raw materials (e.g. Recycled Concrete Aggregate, steel scrap melting, glass cullet). |
-| **Tier 4** | **RECOVER** | Materials Recovery Facility (MRF) bulk sorting or energy recovery (e.g. clean biomass fuel) where secondary manufacturing is unviable. |
-| **Tier 5** | **DISPOSE** | Controlled sanitary containment or specialized hazardous handling when toxic contamination precludes circular loops. |
+| 1 | **REUSE** | Direct salvage and re-installation in original form — no crushing, no remelting. |
+| 2 | **REPAIR** | Minor refurbishment, cleaning, re-welding, re-milling — restores full functional utility. |
+| 3 | **RECYCLE** | Mechanical crushing/shredding/melting into secondary raw material (recycled aggregate, scrap steel, glass cullet, etc.). |
+| 4 | **RECOVER** | Materials Recovery Facility sorting or energy/thermal recovery, when secondary manufacturing isn't viable. |
+| 5 | **DISPOSAL / SPECIALIZED HANDLING** | Regulated containment or hazardous-waste protocol — used when contamination or degradation rules out every circular option. |
 
----
+A **hard safety guardrail** always overrides the model for hazardous contamination, regardless of what the classifier predicts — see [§5](#5-the-machine-learning-decision-engine).
 
-## 4. Required Sequential Decision Pipeline
-
-The application visualizes and executes this exact deterministic decision flow:
+## 3. System Architecture
 
 ```
-Waste Characteristics (Material, Quantity, Condition, Contamination, Attributes)
-       ↓
-Material & Condition Assessment (Safety thresholds & structural degradation checks)
-       ↓
-Rule Evaluation (Predicate matching against structured rule database)
-       ↓
-Recovery Pathway Prioritization (Testing highest-value feasible circular tier)
-       ↓
-Recommended Action (Primary Recovery Pathway)
-       ↓
-Traceable Reasoning + Conditions Checklist + Applications + Viable Alternatives
+┌─────────────────────┐        HTTP/JSON        ┌──────────────────────────┐
+│   React + TS + Vite   │ ───────────────────────▶ │   FastAPI (Python)       │
+│   frontend/            │ ◀─────────────────────── │   backend/app/           │
+└─────────────────────┘                           └──────────────────────────┘
+                                                              │
+                                    ┌─────────────────────────┼─────────────────────────┐
+                                    ▼                         ▼                         ▼
+                          app/ml/model_adapter.py   app/database/session.py   app/rules/ (reference data)
+                          Loads the trained model,   SQLite persistence for    Domain heuristics — power
+                          runs inference, enforces    every assessment run      /api/rules and seed the
+                          the safety guardrail                                 ML training labels
+
 ```
 
----
+**Request flow for `POST /api/analyze`:**
 
-## 5. Technology Stack
+1. `WasteInput` (material, condition, contamination, quantity, unit, free-form characteristics) is validated by Pydantic.
+2. `app/ml/preprocessor.py` extracts a fixed **15-feature vector** (4 categorical + 11 numerical/engineered) from the input.
+3. `app/ml/model_adapter.py::evaluate_waste_ml()` runs the feature vector through the trained scikit-learn pipeline (or a probabilistic fallback if no model file is present — see §5), producing a probability for each of the 5 pathways.
+4. A **safety guardrail** checks contamination level / hazardous-coating flags and, if triggered, force-overrides the prediction to `DISPOSAL / SPECIALIZED HANDLING` regardless of model confidence.
+5. The result — recommendation, confidence, full probability breakdown, reasoning, applications, alternatives, sustainability assessment, and a traceable list of decision steps — is persisted to SQLite and returned to the frontend.
+6. The frontend renders it: a hero card with the recommended pathway and confidence, a probability-distribution bar chart, a 5-stage decision-pipeline visualization, and the qualitative sustainability panel.
 
-- **Backend:**
-  - **Python 3.14 / 3.11+**
-  - **FastAPI**: Modern, high-performance asynchronous REST API framework
-  - **Pydantic v2**: Strict schema validation and data integrity enforcement
-  - **SQLAlchemy 2.0**: ORM for database modeling and query execution
-  - **SQLite**: Local relational database for persistent assessment audit logs
-  - **Pytest**: Automated test suite for rule logic and API endpoints
-- **Frontend:**
-  - **React 19 + TypeScript**: Modern component architecture with type safety
-  - **Vite 6 / 8**: Lightning-fast build tooling and hot-module replacement
-  - **Tailwind CSS v3**: Clean, responsive academic/environmental design system
-  - **Lucide React**: Clean iconography for material workflows
-- **Architecture:** Decoupled Client-Server with JSON REST API communication.
+## 4. Technology Stack
 
----
+**Backend**
+- Python 3.10+ (developed/tested against 3.14)
+- FastAPI — async REST API framework
+- Pydantic v2 — request/response validation
+- SQLAlchemy 2.0 + SQLite — persistence
+- scikit-learn, pandas, numpy, joblib — the ML pipeline
+- Pytest — automated test suite (13 tests: ML pipeline + reference-engine unit tests + full API flow)
 
-## 6. Initial Rule Base Coverage (Sample)
+**Frontend**
+- React 19 + TypeScript
+- Vite 8 — dev server & build tooling
+- Tailwind CSS v3 — styling
+- lucide-react — icons
 
-The system covers 11 major construction materials with structured production rules:
+**Architecture:** decoupled client/server, JSON over REST, CORS-open for local development.
 
-| Rule ID | Material | Predicate Conditions (IF) | Pathway (THEN) | Primary Engineering Rationale |
-|:---:|:---|:---|:---:|:---|
-| **C1** | Concrete | Condition $\in$ {Excellent, Good} $\land$ Contamination $\in$ {None, Low} | **REUSE** | Clean, intact concrete retains structural geometry for direct salvage in landscaping, paving, or precast blocks. |
-| **C2** | Concrete | Condition $\in$ {Moderate, Damaged} $\land$ Contamination $\in$ {None, Low} | **RECYCLE** | *Direct reuse is unsuitable due to the material condition, while clean concrete remains suitable for processing into recycled aggregate.* |
-| **C3** | Concrete | Contamination $\in$ {High, Hazardous} | **SPECIALIZED DISPOSAL** | Contaminants prevent safe crushing; hazardous handling and regulatory chemical testing required. |
-| **B1** | Brick | Condition $\in$ {Excellent, Good} $\land$ Contamination $\in$ {None, Low} $\land$ Broken $\le 25\%$ | **REUSE** | Clean masonry bricks retain high mechanical compressive strength for direct wall salvage and paving. |
-| **B2** | Brick | Condition $\in$ {Damaged, Moderate} $\lor$ Broken $> 25\%$ | **RECYCLE** | Fractured bricks cannot support masonry loads, but make high-quality crushed aggregate and road base. |
-| **S1** | Steel | Structural integrity is Sound $\land$ Contamination $\in$ {None, Low} | **REUSE** | Undamaged structural steel sections retain yield strength for direct refabrication with near-zero embodied carbon. |
-| **S2** | Steel | Condition is Damaged $\lor$ Deformed $\lor$ Rust is Moderate | **RECYCLE** | Steel maintains 100% metallurgical recyclability through electric arc furnace remelting into new rebar. |
-| **W1** | Wood | Condition $\in$ {Good, Excellent} $\land$ Rot = No $\land$ Contamination $\in$ {None, Low} | **REUSE** | Architectural timber and joists can be directly reused for framing, furniture, and temporary structures. |
-| **W2** | Wood | Damaged clean timber $\land$ Non-hazardous | **RECOVER** | Wood fibers recovered into particle boards, engineered wood panels, or clean biomass fuel. |
-| **W3** | Wood | Preservative = CCA / Creosote $\lor$ Hazardous | **SPECIALIZED DISPOSAL** | Toxic chemical preservatives emit arsenic/creosote volatiles if burned; certified containment required. |
-| **G1** | Glass | Intact pane $\land$ Contamination $\in$ {None, Low} | **REUSE** | Architectural glazing panels salvaged for greenhouse construction or secondary partition walls. |
-| **G2** | Glass | Broken / shattered cullet $\land$ Clean | **RECYCLE** | Glass cullet melts at 20-30% lower temperatures than virgin sand, saving significant furnace energy. |
-| **SO1**| Soil | Tested clean $\land$ Condition $\in$ {Good, Excellent} | **REUSE** | Clean excavated subsoil preserved for on-site cut-and-fill balancing and civil embankment grading. |
-| **SO2**| Soil | Contamination $\in$ {Moderate, High, Hazardous} | **SPECIALIZED DISPOSAL** | Chemical spills or heavy metals threaten aquifers; requires ex-situ bioremediation or containment. |
+## 5. The Machine Learning Decision Engine
 
----
+This is the core of the system. Every call to `POST /api/analyze` is answered by `app/ml/model_adapter.py::evaluate_waste_ml()`.
 
-## 7. Installation & Quickstart
+### 5.1 Feature schema (15 features)
+
+| # | Feature | Type | Notes |
+|---|---|---|---|
+| 1 | `material` | categorical | One-hot encoded. 11 materials (Concrete, Brick, Steel, Wood, Glass, Plastic, Gypsum, Asphalt, Soil, Ceramic/Tiles, Mixed) |
+| 2 | `condition` | categorical | One-hot encoded. Excellent / Good / Moderate / Damaged / Severely Damaged |
+| 3 | `contamination` | categorical | One-hot encoded. None / Low / Moderate / High / Hazardous |
+| 4 | `unit` | categorical | One-hot encoded. kg / tonnes / units / cubic metres |
+| 5 | `quantity` | numerical | Standard-scaled |
+| 6 | `broken_percentage` | numerical | 0–100, standard-scaled |
+| 7 | `condition_score` | numerical | Ordinal mapping of `condition`, 0.0–4.0 |
+| 8 | `contamination_score` | numerical | Ordinal mapping of `contamination`, 0.0–4.0 |
+| 9 | `has_cracks` | binary | Derived from `additional_characteristics.cracks` |
+| 10 | `structural_compromised` | binary | Derived from `additional_characteristics.structural_integrity` |
+| 11 | `has_rust` | binary | Derived from `additional_characteristics.rust_level` |
+| 12 | `has_rot` | binary | Derived from `additional_characteristics.rot` |
+| 13 | `is_moist` | binary | Derived from `additional_characteristics.moisture`/`wet` |
+| 14 | `has_hazardous_coating` | binary | Derived from `additional_characteristics.paint_coating`/`foreign_contaminants` |
+| 15 | `is_separable` | binary | Derived from `additional_characteristics.separable_on_site` |
+
+All of this extraction logic lives in `backend/app/ml/preprocessor.py`; the feature/column definitions are centralized in `backend/app/ml/config.py`.
+
+### 5.2 The model
+
+The shipped model (`backend/app/ml/saved_models/waste_recovery_model.joblib`) is a scikit-learn `Pipeline`:
+
+```
+ColumnTransformer(
+    OneHotEncoder → [material, condition, contamination, unit],
+    StandardScaler → [quantity, broken_percentage, condition_score, contamination_score,
+                       has_cracks, structural_compromised, has_rust, has_rot,
+                       is_moist, has_hazardous_coating, is_separable]
+) → RandomForestClassifier(n_estimators=150, max_depth=12, min_samples_split=4,
+                             class_weight="balanced", random_state=42)
+```
+
+It was trained (`backend/app/ml/train_template.py`) on a stratified 80/20 split of a 3,000-row reference dataset (2,400 train / 600 validation, 600 rows per pathway), reaching **98.67% validation accuracy** (see `model_metadata.json`).
+
+**⚠️ Important caveat, stated honestly:** that reference dataset is **synthetic** — generated (`backend/app/ml/generate_sample_dataset.py`) from the same domain heuristics that power the reference knowledge base in §6, not from real inspected construction sites. The model has therefore learned to reproduce those heuristics accurately; the 98.67% figure means "the model learned the synthetic rules correctly," not "the model is 98.67% accurate against real-world waste." Treat it as a working end-to-end demonstration and a solid architecture to retrain on real labelled data when available (see [§12](#12-training--replacing-the-ml-model)).
+
+### 5.3 Fallback baseline (no trained model present)
+
+If `waste_recovery_model.joblib` is missing or fails to load, `BaselineProbabilisticModel` (also in `model_adapter.py`) computes explainable probability scores from the same feature vector using hand-tuned heuristic weights, so the API, frontend, and test suite keep working with zero downtime. `GET /api/ml/status` reports which engine is actually active (`is_user_trained_model_loaded`).
+
+### 5.4 Safety guardrail (model-independent, always active)
+
+Regardless of what the classifier predicts, if `contamination` is `High`/`Hazardous` or a hazardous-coating flag is set, the adapter force-overrides the recommendation to `DISPOSAL / SPECIALIZED HANDLING`, sets `professional_assessment_required = true`, and boosts the reported confidence to reflect certainty about the override — not the model's own probability. This cannot be "trained away"; it's applied after inference as a hard rule, on purpose, because environmental/civil-engineering safety compliance is not something a probabilistic classifier should be trusted to learn on its own.
+
+### 5.5 Multi-class output
+
+Every assessment returns the full posterior — a probability for all 5 pathways, not just the winner — which the frontend renders as a probability-distribution bar chart (`AssessmentResultPage.tsx`), alongside a calibrated confidence percentage and the model name/version.
+
+## 6. The Pathway Reference Knowledge Base
+
+Before the ML pivot, this project's decisions were made by a deterministic, hand-written rule engine (`backend/app/rules/`, 28 material/condition/contamination → pathway heuristics across the same 11 materials). That engine is **no longer on the decision path** — `POST /api/analyze` has called the ML engine exclusively since the architecture change — but its code and data are still very much alive, doing a different job:
+
+- It's the **domain knowledge that the synthetic training dataset was generated from** (see §5.2's caveat).
+- It's still exposed read-only at `GET /api/rules` and `GET /api/rules/{id}`, and rendered in the frontend's **Pathway Reference Guide** page, as a browsable, IF/THEN-style explanation of *why* a given material/condition/contamination combination tends toward a given pathway — useful as a teaching/reference tool independent of whatever the live model currently predicts.
+- It is still directly unit-tested (`backend/tests/test_rule_engine.py` tests `evaluate_waste()` in isolation), because it's a legitimate, correct piece of domain logic in its own right — it's just not what generates a user-facing recommendation anymore.
+
+If you're extending this project: don't confuse this with "the rule-based decision system" from before — the decision system is 100% the ML model in §5. This is reference data.
+
+## 7. Project Structure
+
+### Backend (`backend/app/`)
+
+| Path | Role |
+|---|---|
+| `main.py` | FastAPI app setup, CORS, router registration, DB init + seeding on startup |
+| `database/session.py` | SQLite engine/session (path built with `os.path.join`, OS-agnostic) |
+| `database/seed_data.py` | Seeds demo materials/reference entries/assessments on first run — assessments are seeded through the **ML** engine so they stay consistent with what `/api/analyze` would return |
+| `models/`, `schemas/` | SQLAlchemy ORM models and Pydantic request/response schemas |
+| `routes/assessments.py` | `POST /api/analyze` (ML engine), history list/get/delete |
+| `routes/ml_status.py` | `GET /api/ml/status` — is a trained model loaded, what version, what features does it expect |
+| `routes/rules.py`, `routes/materials.py`, `routes/statistics.py` | Pathway reference browser, material knowledge base, aggregate stats |
+| `routes/health.py` | `GET /api/health` — service + ML engine status |
+| `rules/engine.py`, `rules/rule_base.py`, `rules/materials_data.py` | The reference knowledge base described in §6 |
+| `ml/config.py` | Single source of truth for feature names, categories, target classes, ordinal score mappings |
+| `ml/preprocessor.py` | Turns a `WasteInput` into the 15-feature dict the model expects |
+| `ml/model_adapter.py` | Loads the `.joblib` model (or the baseline fallback), runs inference, enforces the safety guardrail, builds the full result |
+| `ml/train_template.py` | CLI training script: CSV → `ColumnTransformer` + `RandomForestClassifier` → `.joblib` + `model_metadata.json` |
+| `ml/generate_sample_dataset.py` | Generates the synthetic 3,000-row reference dataset |
+| `ml/cv_comparison.py` | Standalone 5-fold CV comparison of 4 classifier types — run manually, not part of the app or test suite |
+| `ml/saved_models/` | The live model artifact (`waste_recovery_model.joblib`) + its metadata (`model_metadata.json`) |
+
+### Frontend (`frontend/src/`)
+
+| Path | Role |
+|---|---|
+| `services/api.ts` | Thin fetch wrapper for every backend endpoint |
+| `types/index.ts` | TypeScript types mirroring the backend Pydantic schemas |
+| `pages/NewAssessmentPage.tsx` | Input form → `POST /api/analyze` |
+| `pages/AssessmentResultPage.tsx` | Renders the result: pathway, confidence, probability bars, reasoning, applications/alternatives, sustainability |
+| `pages/DashboardPage.tsx` | Overview + the ML Model Status card (reads `/api/ml/status`) |
+| `pages/HistoryPage.tsx` | Searchable/filterable audit trail of past assessments |
+| `pages/PathwayReferencePage.tsx` | Browsable knowledge base described in §6 (formerly "Rule Explorer") |
+| `pages/MaterialsPage.tsx` | Material characteristics/circularity reference |
+| `pages/MethodologyPage.tsx` | Research framing, architecture, limitations, future scope |
+| `components/DecisionFlow.tsx` | The 5-stage decision pipeline visualization |
+| `components/PathwayReferenceModal.tsx` | Deep-inspect modal for a single reference entry |
+| `components/HierarchyBadge.tsx`, `SustainabilityPanel.tsx`, `Navbar.tsx`, `Footer.tsx` | Shared UI |
+
+### Root
+
+| Path | Role |
+|---|---|
+| `run_all.sh` / `run_all.bat` | One-command launcher: backend + frontend together |
+| `run_backend.sh` / `run_backend.bat` | Backend only — creates/reuses `backend/venv`, installs deps, starts Uvicorn on :8000 |
+| `run_frontend.sh` / `run_frontend.bat` | Frontend only — `npm install` if needed, starts Vite on :5173 |
+| `startup` | Windows-focused plain-text setup walkthrough (kept as-is; still accurate) |
+| `datasets/` | Three cleaned Kaggle CSVs of Indian municipal waste statistics — **not used to train the model** (no per-item material/condition/contamination fields; kept as reference material only) |
+
+## 8. REST API Reference
+
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `POST` | `/api/analyze` | Runs the ML decision engine (with safety-guardrail override) on waste inputs, persists the result, returns the full explainable response. |
+| `GET` | `/api/assessments` | Lists all recorded assessments; optional `?material=`, `?pathway=`, `?search=` filters. |
+| `GET` | `/api/assessments/{id}` | Reconstructs the exact persisted result for one assessment (does **not** re-run inference — see note below). |
+| `DELETE` | `/api/assessments/{id}` | Deletes an assessment record. |
+| `GET` | `/api/ml/status` | Whether a trained model is loaded, its version, required feature schema, target classes. |
+| `GET` | `/api/rules` | Lists the pathway reference knowledge base (§6); optional `?material=`, `?pathway=` filters. |
+| `GET` | `/api/rules/{rule_id}` | A single reference entry (e.g. `C2`). |
+| `GET` | `/api/materials` | Lists the 11 material knowledge-base entries. |
+| `GET` | `/api/statistics` | Aggregate metrics: totals, pathway distribution, material streams, 5 most recent assessments. |
+| `GET` | `/api/health` | Service + ML engine health status. |
+
+**Why `/api/assessments/{id}` reconstructs rather than re-predicts:** early in this project, fetching a historical assessment re-ran it through the live model. That's a correctness bug — if the model is ever retrained, a historical assessment's list-view pathway and its detail-view pathway could silently disagree, since one came from what was stored at analysis time and the other from today's model. This has been fixed: the endpoint now rebuilds the full result from what was actually persisted (`decision_path`, `sustainability`, `applications`, `alternatives`, `prediction_probabilities`, etc.), so what you see in history always matches what you see in detail, permanently.
+
+## 9. Database Schema
+
+SQLite file at `backend/app/database/waste_planner.db` (auto-created + seeded on first run; safe to delete, it regenerates).
+
+- **`assessments`** — every evaluation run: `id`, `timestamp`, `material`, `condition`, `contamination`, `quantity`, `unit`, `additional_characteristics`, `recommended_pathway`, `reason`, `matched_rule` (ML inference tag, e.g. `ML-RandomForestClassifier Pipeline`), `rule_match_strength`, `applications`, `alternatives`, `decision_path` (full JSON decision-step trace), `sustainability`, `confidence_score`, `model_version`, `prediction_probabilities`, `decision_source`.
+- **`rules`** — the reference knowledge base from §6: `rule_id`, `material`, `pathway`, `priority`, `conditions_description`, `reason`, `applications`, `alternatives`.
+- **`materials`** — material knowledge base: `name`, `category`, `description`, `typical_waste_source`, `reuse_potential`, `recycling_potential`, `common_applications`, `important_considerations`.
+
+## 10. Running the Project
 
 ### Prerequisites
-- Python 3.10+ installed
-- Node.js 18+ and npm installed
+- Python 3.10+
+- Node.js 18+ and npm
 
-### 1-Click Launch
+### One-command launch
 
-**Windows** — double-click, or run from a terminal in the project root:
-```cmd
-run_all.bat
-```
-
-**Linux / macOS** — run from a terminal in the project root:
+**Linux/macOS:**
 ```bash
 ./run_all.sh
 ```
 
-Either script launches both the FastAPI backend (port 8000) and the Vite
-React frontend (port 5173), auto-creating the Python virtual environment and
-installing `node_modules` on first run.
+**Windows:** double-click `run_all.bat`, or run it from a terminal.
 
----
+Either way, both scripts auto-create the Python virtual environment and run `npm install` on first launch only; subsequent runs are fast. Backend lands on `http://127.0.0.1:8000` (Swagger docs at `/docs`), frontend on `http://127.0.0.1:5173`.
 
-### Manual Setup & Execution
+### Manual setup
 
-#### 1. Backend Setup
 ```bash
+# Backend
 cd backend
-
-# Create virtual environment
 python -m venv venv
-
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
-
-# Install dependencies
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Run automated test suite (rule engine + ML pipeline)
-python -m pytest tests/ -v
-
-# Start FastAPI server
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-* Backend API runs at: `http://127.0.0.1:8000`
-* Interactive OpenAPI Documentation: `http://127.0.0.1:8000/docs`
 
-#### 2. Frontend Setup
-```bash
+# Frontend (separate terminal)
 cd frontend
-
-# Install packages
 npm install
-
-# Start Vite development server
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
-* Frontend Application runs at: `http://127.0.0.1:5173`
 
----
+### Verifying it worked
 
-## 8. Verification & Demonstration Walkthrough
+1. `http://127.0.0.1:8000/api/health` → `"ai_ml_enabled": true`, `"ml_model_loaded": true`.
+2. `http://127.0.0.1:8000/api/ml/status` → `"is_user_trained_model_loaded": true`.
+3. Open `http://127.0.0.1:5173`, click a demo scenario on the Dashboard or New Assessment page, submit, and confirm you get a pathway recommendation with a confidence percentage and probability bars.
 
-### Primary Academic Demonstration Scenario (Mandatory Proposal Benchmark)
-1. Open the application at `http://127.0.0.1:5173`.
-2. Click **"New Assessment"** or select **"Demo 1 – Damaged Concrete"**.
-3. Input parameters:
-   - **Material Type:** `Concrete`
-   - **Quantity:** `500`
-   - **Unit:** `kg`
-   - **Condition:** `Damaged`
-   - **Contamination:** `None`
-4. Click **[Analyze Waste]**.
-5. **Verified System Output:**
-   - **Recommended Recovery Pathway:** `RECYCLE` (Badge: Blue, Tier 3)
-   - **Rule Match Strength:** `Strong Rule Match`
-   - **Matched Rule:** `C2`
-   - **Reason for Recommendation:** *"Direct reuse is unsuitable due to the material condition, while clean concrete remains suitable for processing into recycled aggregate."*
-   - **Potential Applications:** Recycled aggregate, Road base, Sub-base, Fill material where appropriate.
-   - **Alternative Option:** Controlled reuse for suitable non-structural applications.
-   - **Traceable Decision Path:**
-     - `Reuse ✕` (Direct reuse rejected due to damaged structural condition)
-     - `Repair ✕` (Refurbishment not applicable to fractured concrete)
-     - `Recycle ✓` (Clean concrete suitable for processing into aggregate)
-     - `Recover` (Superseded by higher tier)
-     - `Dispose` (Avoided through recycling)
-   - **Qualitative Sustainability Indicators:**
-     - Landfill Avoidance: `HIGH`
-     - Material Recovery: `HIGH`
-     - Resource Conservation: `HIGH`
-     - Circularity Potential: `HIGH`
+See also: `startup` (plain-text Windows walkthrough with troubleshooting steps for first-time setup).
 
----
+## 11. Testing
 
-## 9. REST API Reference
+```bash
+cd backend
+source venv/bin/activate
+python -m pytest tests -q
+```
 
-| Method | Endpoint | Description |
-|:---|:---|:---|
-| `POST` | `/api/analyze` | Runs the ML decision engine (with safety-guardrail overrides) on waste inputs, persists the result, and returns an explainable response including confidence score and per-class probabilities. |
-| `GET` | `/api/assessments` | Returns all recorded assessments with optional `?material=`, `?pathway=`, `?search=` filters. |
-| `GET` | `/api/assessments/{id}` | Retrieves full decision path and checklist for a specific assessment. |
-| `DELETE` | `/api/assessments/{id}` | Deletes an assessment audit record from the database. |
-| `GET` | `/api/ml/status` | Reports whether a trained model is loaded, its version/accuracy, and the required feature schema. |
-| `GET` | `/api/rules` | Catalogs all production rules in the (legacy, still-tested) rule base with optional filters. |
-| `GET` | `/api/rules/{rule_id}` | Returns predicate rules and rationale for a single rule ID (e.g. `C2`). |
-| `GET` | `/api/materials` | Lists knowledge base entries for all 11 construction waste materials. |
-| `GET` | `/api/statistics` | Aggregates real-time metrics (counts, pathway distribution, material streams). |
-| `GET` | `/api/health` | Service health status. |
+13 tests covering: ML feature extraction, ML adapter probability output and safety override, `/api/ml/status`, `/api/analyze` via the ML pipeline, the reference engine's own unit-level predicates (`evaluate_waste()` directly — independent of what `/api/analyze` uses), and a full API flow test (analyze → history → statistics → rules → materials).
 
----
+Run `pytest` from the `backend/` directory (not the project root) or with `tests` explicitly named — `backend/app/ml/cv_comparison.py` is a standalone script, not a test, and lives outside the `tests/` package specifically so pytest's default discovery doesn't pick it up.
 
-## 10. Database Schema (SQLite)
+## 12. Training / Replacing the ML Model
 
-Located at `backend/app/database/waste_planner.db`:
-- **`assessments`**: Stores evaluation runs (`id`, `timestamp`, `material`, `condition`, `contamination`, `quantity`, `unit`, `recommended_pathway`, `matched_rule`, `reason`, `applications`, `alternatives`, `decision_path`, `sustainability`, plus ML fields `confidence_score`, `model_version`, `prediction_probabilities`, `decision_source`).
-- **`rules`**: Stores production rule catalog (`rule_id`, `material`, `pathway`, `priority`, `conditions_description`, `reason`, `applications`, `alternatives`).
-- **`materials`**: Stores knowledge base items (`name`, `category`, `description`, `typical_waste_source`, `reuse_potential`, `recycling_potential`, `common_applications`, `important_considerations`).
+To retrain on the bundled synthetic dataset from scratch:
 
----
+```bash
+python backend/app/ml/generate_sample_dataset.py   # rewrites sample_waste_dataset.csv
+python backend/app/ml/train_template.py             # retrains + overwrites the .joblib
+```
 
-## 11. Limitations & Future Scope
+To train on **real, labelled data** (recommended before relying on this for anything beyond a demo):
 
-### Current Version 1 Prototype Limitations
-1. Does not dynamically calculate live transportation freight costs or tip fees at specific regional transfer stations.
-2. Relies on visual and on-site engineering assessments rather than real-time spectral or chemical laboratory testing.
-3. Provides qualitative rather than numerically certified ISO 14040 Life-Cycle Assessment (LCA) embodied carbon metrics.
+1. Build a CSV with the 15 feature columns from §5.1 plus a `recommended_pathway` target column.
+2. `python backend/app/ml/train_template.py --dataset path/to/your_data.csv`
+3. This overwrites `waste_recovery_model.joblib` + `model_metadata.json` in place. Restart the backend — no other code changes needed. `GET /api/ml/status` will confirm the new version/accuracy.
+4. Re-run `pytest backend/tests -q` to confirm the API contract and safety guardrail still hold.
 
-### Future Research Extensions
-- **BIM Deconstruction Integration:** Direct import of deconstruction schedules from Revit / IFC files.
-- **Quantitative Carbon Accounting:** Integration with regional EPD (Environmental Product Declaration) databases for exact $kg\text{ CO}_2\text{e}$ savings calculation.
-- **Geographic Information Systems (GIS):** Proximity routing to nearest verified secondary material exchanges.
+Want to compare classifier choices first? `python -m app.ml.cv_comparison` (run from `backend/`) does a 5-fold CV comparison of RandomForest / GradientBoosting / DecisionTree / LogisticRegression on the current dataset.
+
+## 13. Known Limitations & Honest Caveats
+
+- **Training data is synthetic.** The shipped model's 98.67% accuracy is against a held-out slice of the same synthetic heuristics it was trained on — it demonstrates the architecture works end-to-end, not real-world field accuracy. See §5.2.
+- **No live logistics modeling** — no transportation cost, tip fees, or regional plant capacity calculations.
+- **User-reported inputs** — the system relies on self-reported physical condition rather than certified laboratory testing.
+- **Sustainability scores are qualitative**, not a certified ISO 14040 Life-Cycle Assessment.
+- **The top-level `datasets/` CSVs are not used for training** — they're city/municipal-level waste statistics with no per-item material/condition/contamination/pathway fields, kept for future feature-engineering reference only.
+
+## 14. Future Scope
+
+- Retrain on real, lab-verified or field-inspected waste assessment data.
+- Building Information Modeling (BIM) integration for deconstruction schedules (Revit/IFC import).
+- Quantitative Life-Cycle Assessment (LCA) with real embodied-carbon (kg CO₂e) accounting via regional EPD databases.
+- GIS-based routing to the nearest verified recycling plant or secondary material marketplace.

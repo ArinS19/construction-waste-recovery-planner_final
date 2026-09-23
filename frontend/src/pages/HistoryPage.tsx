@@ -112,7 +112,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Search material, rule ID, or keywords..."
+            placeholder="Search material, model tag, or keywords..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
@@ -176,7 +176,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                 <th className="py-3 px-4">Contamination</th>
                 <th className="py-3 px-4">Quantity</th>
                 <th className="py-3 px-4">Recommended Pathway</th>
-                <th className="py-3 px-4">Rule</th>
+                <th className="py-3 px-4">Model Tag</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>

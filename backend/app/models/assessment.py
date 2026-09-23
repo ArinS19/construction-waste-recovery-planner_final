@@ -1,12 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
 from app.database.session import Base
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 class Assessment(Base):
     __tablename__ = "assessments"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=_utcnow, nullable=False)
     material = Column(String(100), nullable=False, index=True)
     condition = Column(String(50), nullable=False)
     contamination = Column(String(50), nullable=False)

@@ -9,10 +9,13 @@ from app.models.assessment import Assessment
 from app.schemas.assessment import (
     WasteInput,
     AssessmentResult,
-    AssessmentRecord
+    AssessmentRecord,
+    DecisionStep,
+    HierarchyEvaluation,
+    SustainabilityAssessment
 )
-from app.rules.engine import evaluate_waste
-from app.ml.model_adapter import evaluate_waste_ml
+from app.ml.model_adapter import evaluate_waste_ml, build_conditions_satisfied, DISCLAIMER_TEXT
+from app.ml.config import CONDITION_ORDINAL_MAP, CONTAMINATION_ORDINAL_MAP
 
 router = APIRouter(prefix="/api", tags=["Assessments"])
 
@@ -104,6 +107,13 @@ def list_assessments(
 
 @router.get("/assessments/{assessment_id}", response_model=AssessmentResult)
 def get_assessment(assessment_id: int, db: Session = Depends(get_db)):
+    """
+    Reconstructs the exact result that was persisted at assessment time from
+    the stored record, rather than re-running the ML model against today's
+    (possibly retrained) model artifact. This keeps this endpoint consistent
+    with what `/api/assessments` (the history list) and the original
+    `/api/analyze` response showed for the same record.
+    """
     rec = db.query(Assessment).filter(Assessment.id == assessment_id).first()
     if not rec:
         raise HTTPException(status_code=404, detail="Assessment not found")
@@ -122,19 +132,83 @@ def get_assessment(assessment_id: int, db: Session = Depends(get_db)):
         additional_characteristics=chars
     )
 
-    result = evaluate_waste_ml(input_obj)
-    result.id = rec.id
-    result.timestamp = rec.timestamp
-    if rec.confidence_score is not None:
-        result.confidence_score = rec.confidence_score
-    if rec.model_version:
-        result.model_version = rec.model_version
-    if rec.prediction_probabilities:
-        try:
-            result.prediction_probabilities = json.loads(rec.prediction_probabilities)
-        except Exception:
-            pass
-    return result
+    try:
+        decision_steps = [DecisionStep(**s) for s in json.loads(rec.decision_path or "[]")]
+    except Exception:
+        decision_steps = []
+
+    def _step_details(stage: str) -> dict:
+        for step in decision_steps:
+            if step.stage == stage:
+                return step.details or {}
+        return {}
+
+    safety_details = _step_details("SAFETY_GUARDRAIL")
+    inference_details = _step_details("ML_INFERENCE")
+    hierarchy_details = _step_details("HIERARCHY_ALIGNMENT")
+
+    try:
+        hierarchy_evaluation = [
+            HierarchyEvaluation(**h) for h in hierarchy_details.get("hierarchy", [])
+        ]
+    except Exception:
+        hierarchy_evaluation = []
+
+    try:
+        sustainability = SustainabilityAssessment(**json.loads(rec.sustainability or "{}"))
+    except Exception:
+        sustainability = SustainabilityAssessment(
+            landfill_avoidance="Unknown", material_recovery="Unknown",
+            resource_conservation="Unknown", circularity_potential="Unknown"
+        )
+
+    try:
+        applications = json.loads(rec.applications or "[]")
+    except Exception:
+        applications = []
+    try:
+        alternatives = json.loads(rec.alternatives or "[]")
+    except Exception:
+        alternatives = []
+    try:
+        probabilities = json.loads(rec.prediction_probabilities or "{}")
+    except Exception:
+        probabilities = {}
+
+    model_name = inference_details.get("model_name", "ML Classifier")
+    inference_source = rec.decision_source or "ML Model"
+    confidence_score = rec.confidence_score if rec.confidence_score is not None else 0.0
+    confidence_pct = round(confidence_score * 100, 1)
+
+    conditions_satisfied = build_conditions_satisfied(
+        rec.material, rec.condition, rec.contamination,
+        CONDITION_ORDINAL_MAP.get(rec.condition, 2.0),
+        CONTAMINATION_ORDINAL_MAP.get(rec.contamination, 0.0),
+        confidence_pct, model_name, inference_source, chars
+    )
+
+    return AssessmentResult(
+        id=rec.id,
+        timestamp=rec.timestamp,
+        input_summary=input_obj,
+        recommended_pathway=rec.recommended_pathway,
+        rule_match_strength=rec.rule_match_strength or f"ML Confidence: {confidence_pct}%",
+        matched_rule=rec.matched_rule,
+        reason=rec.reason,
+        conditions_satisfied=conditions_satisfied,
+        potential_applications=applications,
+        alternative_options=alternatives,
+        decision_steps=decision_steps,
+        hierarchy_evaluation=hierarchy_evaluation,
+        sustainability=sustainability,
+        safety_disclaimer=DISCLAIMER_TEXT,
+        professional_assessment_required=bool(safety_details.get("professional_assessment_required", False)),
+        confidence_score=rec.confidence_score,
+        prediction_probabilities=probabilities,
+        model_name=model_name,
+        model_version=rec.model_version,
+        inference_source=inference_source
+    )
 
 @router.delete("/assessments/{assessment_id}")
 def delete_assessment(assessment_id: int, db: Session = Depends(get_db)):

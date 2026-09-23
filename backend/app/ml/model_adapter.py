@@ -150,6 +150,37 @@ def get_model_status() -> Dict[str, Any]:
         )
     }
 
+def build_conditions_satisfied(
+    material: str,
+    condition: str,
+    contamination: str,
+    condition_score: float,
+    contamination_score: float,
+    confidence_pct: float,
+    model_name: str,
+    inference_source: str,
+    chars: Dict[str, Any]
+) -> List[str]:
+    """
+    Builds the human-readable "conditions satisfied" list shared by both a
+    fresh ML evaluation and a reconstruction of a previously persisted
+    assessment (see routes/assessments.py:get_assessment), so both code
+    paths render identical text for the same underlying data.
+    """
+    conditions_satisfied = [
+        f"Material = {material}",
+        f"Condition = {condition} (Score: {condition_score}/4)",
+        f"Contamination = {contamination} (Score: {contamination_score}/4)",
+        f"ML Model Confidence = {confidence_pct}%",
+        f"Inference Engine = {model_name} ({inference_source})"
+    ]
+
+    for k, v in (chars or {}).items():
+        if v not in [None, ""]:
+            conditions_satisfied.append(f"{k.replace('_', ' ').title()} = {v}")
+
+    return conditions_satisfied
+
 def evaluate_waste_ml(waste_input: WasteInput) -> AssessmentResult:
     """
     Executes the Machine Learning Assessment Pipeline:
@@ -317,17 +348,11 @@ def evaluate_waste_ml(waste_input: WasteInput) -> AssessmentResult:
     sustainability = _generate_sustainability(predicted_pathway)
 
     # Conditions / Top contributing features
-    conditions_satisfied = [
-        f"Material = {material}",
-        f"Condition = {condition} (Score: {features['condition_score']}/4)",
-        f"Contamination = {contamination} (Score: {features['contamination_score']}/4)",
-        f"ML Model Confidence = {confidence_pct}%",
-        f"Inference Engine = {model_name} ({inference_source})"
-    ]
-
-    for k, v in chars.items():
-        if v not in [None, ""]:
-            conditions_satisfied.append(f"{k.replace('_', ' ').title()} = {v}")
+    conditions_satisfied = build_conditions_satisfied(
+        material, condition, contamination,
+        features["condition_score"], features["contamination_score"],
+        confidence_pct, model_name, inference_source, chars
+    )
 
     return AssessmentResult(
         timestamp=datetime.now(timezone.utc),

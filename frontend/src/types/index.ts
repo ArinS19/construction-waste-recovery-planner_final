@@ -131,13 +131,3 @@ export interface StatisticsResponse {
     matched_rule: string;
   }>;
 }
-
-export interface DemoExample {
-  id: string;
-  title: string;
-  subtitle: string;
-  badge: string;
-  data: WasteInput;
-  expectedPathway: string;
-  expectedRule: string;
-}

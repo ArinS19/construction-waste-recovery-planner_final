@@ -156,9 +156,9 @@ export const MethodologyPage: React.FC = () => {
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-            <span className="font-bold text-emerald-800 block mb-1">2. Explainable Rule Engine</span>
+            <span className="font-bold text-emerald-800 block mb-1">2. Explainable Decision Pipeline</span>
             <p className="text-slate-600 leading-tight">
-              Provides step-by-step decision auditing, satisfied conditions checklists, and transparent justifications for every outcome.
+              Provides step-by-step decision auditing, satisfied conditions checklists, and transparent justifications for every ML-generated outcome.
             </p>
           </div>
 
@@ -188,7 +188,7 @@ export const MethodologyPage: React.FC = () => {
           <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
             <li>Does not compute real-time dynamic transportation logistics or local plant tip fees.</li>
             <li>Relies on user-reported physical degradation parameters rather than certified lab tests.</li>
-            <li>Rule base represents generalized regional civil engineering guidelines.</li>
+            <li>The reference dataset used to derive training labels is synthetic/heuristic-derived, representing generalized regional civil engineering guidelines rather than certified lab-inspected waste records.</li>
           </ul>
         </div>
 

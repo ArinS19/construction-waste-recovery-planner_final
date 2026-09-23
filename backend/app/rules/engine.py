@@ -1,7 +1,9 @@
 ﻿"""
-Rule-Based Decision Support Engine for Sustainable Material Recovery.
-Strictly deterministic, transparent, explainable IF/THEN inference engine.
-Zero AI/ML - 100% rule-based and auditable.
+Deterministic reference knowledge base engine (material/condition/contamination
+-> pathway heuristics). Not on the live decision path: POST /api/analyze uses
+the ML engine in app/ml/model_adapter.py exclusively. This module is the
+domain logic the ML training dataset was derived from, still exposed
+read-only via GET /api/rules and directly unit-tested in its own right.
 """
 
 from typing import Dict, Any, List, Tuple

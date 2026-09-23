@@ -11,7 +11,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab }) => 
     { id: 'dashboard', label: 'Dashboard', icon: Layers },
     { id: 'new-assessment', label: 'New Assessment', icon: PlusCircle },
     { id: 'history', label: 'History', icon: History },
-    { id: 'rules', label: 'Rule Explorer', icon: BookOpen },
+    { id: 'rules', label: 'Pathway Reference', icon: BookOpen },
     { id: 'materials', label: 'Materials', icon: Recycle },
     { id: 'about', label: 'About / Methodology', icon: Info },
   ];

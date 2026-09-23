@@ -240,7 +240,7 @@ export const AssessmentResultPage: React.FC<AssessmentResultPageProps> = ({
             <span>Why This Recommendation?</span>
           </h3>
           <span className="text-xs font-mono font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
-            Matched Rule: {matched_rule}
+            Model Reference: {matched_rule}
           </span>
         </div>
 

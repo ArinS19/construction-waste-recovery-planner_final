@@ -6,7 +6,7 @@ from app.models.rule import Rule
 from app.models.material import Material
 from app.rules.rule_base import RULES_DATABASE
 from app.rules.materials_data import MATERIALS_DATABASE
-from app.rules.engine import evaluate_waste
+from app.ml.model_adapter import evaluate_waste_ml
 from app.schemas.assessment import WasteInput
 
 def seed_database():
@@ -63,7 +63,7 @@ def seed_database():
 
             now = datetime.now(timezone.utc)
             for i, demo_input in enumerate(sample_demos):
-                result = evaluate_waste(demo_input)
+                result = evaluate_waste_ml(demo_input)
                 past_time = now - timedelta(days=(len(sample_demos) - i - 1), hours=i * 2)
 
                 record = Assessment(
@@ -81,7 +81,11 @@ def seed_database():
                     applications=json.dumps(result.potential_applications),
                     alternatives=json.dumps(result.alternative_options),
                     decision_path=json.dumps([s.model_dump() for s in result.decision_steps]),
-                    sustainability=json.dumps(result.sustainability.model_dump())
+                    sustainability=json.dumps(result.sustainability.model_dump()),
+                    confidence_score=result.confidence_score,
+                    model_version=result.model_version,
+                    prediction_probabilities=json.dumps(result.prediction_probabilities or {}),
+                    decision_source=result.inference_source or "ML Model"
                 )
                 db.add(record)
             db.commit()
