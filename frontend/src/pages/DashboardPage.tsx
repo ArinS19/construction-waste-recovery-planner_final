@@ -57,7 +57,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const quickDemos = [
     {
       title: 'Demo 1: Damaged Concrete (500 kg)',
-      badge: 'Recycling (Rule C2)',
+      badge: 'Structural Damage Scenario',
       desc: 'Concrete aggregate downcycling proposal scenario',
       input: {
         material: 'Concrete',
@@ -70,7 +70,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     },
     {
       title: 'Demo 2: Reusable Bricks (300 kg)',
-      badge: 'Direct Reuse (Rule B1)',
+      badge: 'Heritage Masonry Scenario',
       desc: 'Clean intact heritage masonry bricks',
       input: {
         material: 'Brick',
@@ -83,7 +83,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     },
     {
       title: 'Demo 3: Recyclable Steel (250 kg)',
-      badge: 'Recycling (Rule S2)',
+      badge: 'Deformed Steel Scenario',
       desc: 'Deformed structural steel with low surface rust',
       input: {
         material: 'Steel',
@@ -96,7 +96,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     },
     {
       title: 'Demo 4: Clean Soil (800 kg)',
-      badge: 'Direct Reuse (Rule SO1)',
+      badge: 'Clean Fill Scenario',
       desc: 'Clean excavated subsoil for site grading',
       input: {
         material: 'Soil',
@@ -122,10 +122,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             Construction Waste Recovery Planner
           </h2>
           <p className="text-emerald-300 font-medium text-sm sm:text-base mt-1">
-            Rule-Based Decision Support for Sustainable Material Recovery
+            Machine Learning Decision Support for Sustainable Material Recovery
           </p>
           <p className="text-slate-300 text-xs sm:text-sm mt-3 leading-relaxed">
-            Analyze construction waste characteristics and identify the most suitable recovery pathway using transparent, explainable rules. Prioritizes high-value circularity across the recovery hierarchy.
+            Analyze construction waste characteristics and identify the most suitable recovery pathway using a trained Machine Learning model with transparent, explainable decision steps. Prioritizes high-value circularity across the recovery hierarchy.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -321,7 +321,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
         <p className="text-xs text-slate-600 leading-relaxed">
-          The system attempts to preserve maximum material and energetic value by testing rules top-down. Lower-tier recovery (such as downcycling into aggregate or thermal recovery) is only selected when structural degradation, physical cracking, or contamination rules out higher-tier reuse.
+          The ML model attempts to preserve maximum material and energetic value by scoring every pathway from Tier 1 downward. Lower-tier recovery (such as downcycling into aggregate or thermal recovery) is only selected when structural degradation, physical cracking, or contamination rules out higher-tier reuse.
         </p>
       </div>
 
@@ -475,7 +475,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <th className="py-3 px-4">Condition</th>
                 <th className="py-3 px-4">Contamination</th>
                 <th className="py-3 px-4">Recommended Pathway</th>
-                <th className="py-3 px-4">Rule</th>
+                <th className="py-3 px-4">Model Tag</th>
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>

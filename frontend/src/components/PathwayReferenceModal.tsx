@@ -1,14 +1,14 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, BookOpen, Layers, CheckCircle2, ArrowRight } from 'lucide-react';
 import { RuleResponse } from '../types';
 import { HierarchyBadge } from './HierarchyBadge';
 
-interface RuleModalProps {
+interface PathwayReferenceModalProps {
   rule: RuleResponse | null;
   onClose: () => void;
 }
 
-export const RuleModal: React.FC<RuleModalProps> = ({ rule, onClose }) => {
+export const PathwayReferenceModal: React.FC<PathwayReferenceModalProps> = ({ rule, onClose }) => {
   if (!rule) return null;
 
   return (
@@ -22,7 +22,7 @@ export const RuleModal: React.FC<RuleModalProps> = ({ rule, onClose }) => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-white">Rule {rule.rule_id} Details</h3>
+                <h3 className="text-lg font-bold text-white">Reference {rule.rule_id} Details</h3>
                 <HierarchyBadge pathway={rule.pathway} size="sm" showTier />
               </div>
               <p className="text-xs text-slate-300 font-medium mt-0.5">
@@ -44,7 +44,7 @@ export const RuleModal: React.FC<RuleModalProps> = ({ rule, onClose }) => {
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Predicate Conditions (IF)</span>
+              <span>Reference Conditions</span>
             </h4>
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg font-mono text-xs text-slate-800">
               {rule.conditions_description}
@@ -55,7 +55,7 @@ export const RuleModal: React.FC<RuleModalProps> = ({ rule, onClose }) => {
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-blue-600" />
-              <span>Prescribed Recovery Pathway (THEN)</span>
+              <span>Reference Pathway</span>
             </h4>
             <div className="p-3 bg-emerald-50/50 border border-emerald-200 rounded-lg">
               <div className="font-bold text-emerald-900 text-sm mb-1">

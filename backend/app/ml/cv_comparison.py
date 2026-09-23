@@ -1,5 +1,11 @@
-import sys, json, warnings
-sys.path.insert(0, 'backend')
+"""
+Standalone 5-fold cross-validation comparison of candidate classifiers on the
+reference dataset. Not part of the FastAPI app or the pytest suite -- run it
+directly with `python -m app.ml.cv_comparison` (from `backend/`) whenever you
+want to sanity-check which algorithm to train with `train_template.py`.
+"""
+import warnings
+from pathlib import Path
 warnings.filterwarnings('ignore')
 import pandas as pd
 import numpy as np
@@ -11,7 +17,8 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 
-df = pd.read_csv('backend/app/ml/data/sample_waste_dataset.csv')
+DATASET_PATH = Path(__file__).resolve().parent / "data" / "sample_waste_dataset.csv"
+df = pd.read_csv(DATASET_PATH)
 CAT = ['material','condition','contamination','unit']
 NUM = ['quantity','broken_percentage','condition_score','contamination_score','has_cracks','structural_compromised','has_rust','has_rot','is_moist','has_hazardous_coating','is_separable']
 X = df[CAT + NUM]

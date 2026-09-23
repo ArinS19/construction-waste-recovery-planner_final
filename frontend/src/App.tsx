@@ -5,7 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { NewAssessmentPage } from './pages/NewAssessmentPage';
 import { AssessmentResultPage } from './pages/AssessmentResultPage';
 import { HistoryPage } from './pages/HistoryPage';
-import { RuleExplorerPage } from './pages/RuleExplorerPage';
+import { PathwayReferencePage } from './pages/PathwayReferencePage';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { MethodologyPage } from './pages/MethodologyPage';
 import { AssessmentResult, WasteInput } from './types';
@@ -122,7 +122,7 @@ export function App() {
           />
         )}
 
-        {currentTab === 'rules' && <RuleExplorerPage />}
+        {currentTab === 'rules' && <PathwayReferencePage />}
 
         {currentTab === 'materials' && <MaterialsPage />}
 

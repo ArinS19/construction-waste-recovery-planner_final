@@ -173,7 +173,7 @@ export const NewAssessmentPage: React.FC<NewAssessmentPageProps> = ({
           <span>New Waste Assessment</span>
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Specify physical condition and contamination attributes for deterministic recovery pathway evaluation.
+          Specify physical condition and contamination attributes for ML-based recovery pathway evaluation.
         </p>
       </div>
 
